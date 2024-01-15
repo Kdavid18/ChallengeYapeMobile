@@ -1,0 +1,51 @@
+name: Automated Test Appium WebDriverIO
+on:
+  schedule:
+  - cron: "0 5 * * 1-5"
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+      - "*"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      API_LEVEL: 34
+      EMULATOR_PROFILE: Pixel_3a_API_34
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "14"
+
+      - name: Install dependencies
+        run: |
+          npm install
+          npm install -g appium
+          npm install -g appium-doctor
+          appium --version
+          appium-doctor
+          npm install --save-dev @wdio/cli
+          npx wdio config -y
+
+      - name: Set up Android emulator
+        uses: reactivecircuits/setup-android-emulator@v2
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: default
+          arch: x86
+          profile: ${{ env.EMULATOR_PROFILE }}
+
+      - name: Start emulator
+        run: |
+          emulator -avd ${{ env.EMULATOR_PROFILE }} -no-skin -no-window -no-audio &
+          android-wait-for-emulator
+
+      - name: Run Appium tests
+        run: npx wdio
